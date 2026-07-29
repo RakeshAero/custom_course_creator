@@ -38,7 +38,9 @@ SECRET_KEY = 'django-insecure-k^20sui--!+54a=1_rsl4&*6on9%9uo_p47pw_m!_@h1yt3*w@
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    '192.168.1.33'
+]
 
 
 # Application definition
@@ -53,6 +55,7 @@ INSTALLED_APPS = [
 
     'rest_framework',   #Add the packages
     'corsheaders',
+    'django_celery_beat',
 
     'users',        # Add the directories
     'courses.apps.CoursesConfig',
@@ -170,3 +173,18 @@ SIMPLE_JWT = {
     # Optional: Blacklist old tokens after rotation (requires rest_framework_simplejwt.token_blacklist)
     'BLACKLIST_AFTER_ROTATION': True,
 }
+
+# (Redis logical DB 0)
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/1')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+
+# Store the Beat (cron) schedule in the database, editable via Django admin.
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+# Escape hatch: set CELERY_TASK_ALWAYS_EAGER=1 in .env to run tasks INLINE
+# (no worker/Redis needed) — handy for quick local testing.
+CELERY_TASK_ALWAYS_EAGER = os.environ.get('CELERY_TASK_ALWAYS_EAGER', '0') == '1'
