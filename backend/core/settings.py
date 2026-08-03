@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     'courses.apps.CoursesConfig',
     'assessments.apps.AssessmentsConfig',
     'progress.apps.ProgressConfig',
+    'emails.apps.EmailsConfig',
 ]
 
 MIDDLEWARE = [
@@ -188,3 +189,8 @@ CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 # Escape hatch: set CELERY_TASK_ALWAYS_EAGER=1 in .env to run tasks INLINE
 # (no worker/Redis needed) — handy for quick local testing.
 CELERY_TASK_ALWAYS_EAGER = os.environ.get('CELERY_TASK_ALWAYS_EAGER', '0') == '1'
+
+#----Email Configuration-
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')  # Default to console backend for development
+
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'Learnify <no-reply@learnify.test>')
