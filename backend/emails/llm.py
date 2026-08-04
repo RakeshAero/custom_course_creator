@@ -29,7 +29,7 @@ def generate_welcome_email(learner_name, course_title, first_module_title, weak_
         client = _client()
         response = client.models.generate_content(
             model=settings.GEMINI_MODEL,
-            content=prompt,
+            contents=prompt,
             config=types.GenerateContentConfig(
                 max_output_tokens=800,
                 response_mime_type="application/json",
