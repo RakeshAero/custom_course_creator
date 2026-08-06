@@ -114,6 +114,13 @@ class AssessmentViewSet(viewsets.ModelViewSet):
             # Never let LLM errors break the submit response
             print(f"[submit] Path generation failed: {e}")
 
+        # ── After path generation → fire the welcome email in the background ──
+        # .delay() drops the task on the Redis queue and returns INSTANTLY, so the
+        # learner's response isn't delayed by the LLM copywriting + SMTP send.
+        if path_generated:
+            from emails.tasks import send_welcome_email_task
+            send_welcome_email_task(request.user.id, course.id)
+
         return Response(
             {
                 "score": total_score,

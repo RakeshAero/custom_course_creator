@@ -23,17 +23,27 @@ def send_welcome_email_task(user_id, course_id):
     path = PersonalizedLearningPath.objects.filter(user=user,course=course).first()
 
     #module
-    module = Module.objects.filter(course=course).first()
+    if path and path.path_data:
+        first_module_title = path.path_data[0].get('title', 'your first module')
+    else:
+        first_mod = Module.objects.filter(course=course).order_by('order').first()
+        first_module_title = first_mod.title  
+
+    #module
+    # module = Module.objects.filter(course=course).first()
+
+    #weak skills
+    weak_skills = []
 
     #onboarding
     onboarding = Assessment.objects.filter(course=course,is_onboarding=True).first()
-
+    
     if onboarding:
         sub = AssessmentSubmission.objects.filter(user=user,assessment=onboarding).first()
         if sub and sub.skill_scores:
             weak_skills = [skill for skill, pct in sub.skill_scores.items() if pct < 70]
 
-    email = generate_welcome_email(user.username, course.title, module.title, weak_skills)
+    email = generate_welcome_email(user.username, course.title, first_module_title, weak_skills)
     recipient = user.email or f"{user.username}@example.com"
     log = send_and_log(user, recipient, "welcome", email["subject"], email["body"])
 
