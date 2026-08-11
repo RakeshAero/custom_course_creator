@@ -15,6 +15,7 @@ from pathlib import Path
 from datetime import timedelta
 import os
 from dotenv import load_dotenv
+from celery.schedules import crontab
 
 # Load environment variables from .env file
 load_dotenv()
@@ -186,6 +187,14 @@ CELERY_TIMEZONE = TIME_ZONE
 
 # Store the Beat (cron) schedule in the database, editable via Django admin.
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+CELERY_BEAT_SCHEDULE = {
+    'weekly-summaries-monday-8am':{
+        'task': 'emails.tasks.send_all_weekly_summaries',
+        'schedule': crontab(hour=8, minute=0, day_of_week='monday'),
+        # 'schedule': timedelta(seconds=60),
+    },
+}
 
 # Escape hatch: set CELERY_TASK_ALWAYS_EAGER=1 in .env to run tasks INLINE
 # (no worker/Redis needed) — handy for quick local testing.

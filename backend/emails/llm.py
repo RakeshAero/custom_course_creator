@@ -51,3 +51,50 @@ def generate_welcome_email(learner_name, course_title, first_module_title, weak_
                 f"those up step by step.\n\nHappy learning!\nThe Learnify Team"
             ),
         }
+
+def generate_weekly_summary_email(learner_name, course_title, completed_count, total_count, next_title):
+
+    """
+    Weekly progress email. Returns {"subject": str, "body": str}, with a fallback.
+    """
+
+    pct = round((completed_count / total_count) * 100) if total_count else 0
+
+    prompt = f"""Write a short, encouraging weekly progress email for an online learner.
+            Learner: {learner_name}
+            Course: "{course_title}"
+            Progress so for: completed {completed_count} of {total_count} subtopics ({pct}%).
+            Their next recommended step: "{next_title}"
+
+            Requirements:
+            - Warm and motivating, at most 3 short paragraphs.
+            - Celebrate their {pct}% progress and nudge them toward "{next_title}".
+            - If progress is 0%, gently encourage them to begin.
+            - Return a JSON object with exactly "subject" and "body" (plain text, \\n line breaks).
+            """
+    try:
+        client = _client()
+        response = client.models.generate_content(
+            model=settings.GEMINI_MODEL,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                max_output_token=800,
+                response_mime_type="application/json",
+            ),
+        )
+
+        data = json.loads(response.text)
+        return {"subject":data["subject"], "body": data["body"]}
+    
+    except Exception as e :
+        print(f"[emails.llm] weekly generation failed: {e}. Using fallback.")
+        return {
+            "subject": f"Your weekly progress in {course_title} ({pct}%)",
+            "body": (
+                f"Hi {learner_name},\n\n"
+                f"You've completed {completed_count} of {total_count} subtopics ({pct}%) in "
+                f"{course_title}. Nice work!\n\n"
+                f"Your next step is \"{next_title}\". Keep the momentum going!\n\n"
+                f"The Learnify Team"
+            ),
+        }
