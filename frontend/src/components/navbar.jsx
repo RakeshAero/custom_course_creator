@@ -23,6 +23,8 @@ function Navbar() {
             {isAdmin && <Link to="/create-module">Create Module</Link>}
             {isAdmin && <Link to="/create-assessment">Create Assessment</Link>}
             {isAdmin && <Link to="/create-question">Create Question</Link>}
+            {isAdmin && <Link to="/create-question">Create Question</Link>}
+            {isAdmin && <Link to="/email-delivery">Email Delivery</Link>}
 
             {user?.role === 'student' && (
                 <Link to="/learner-dashboard">My Learning</Link>

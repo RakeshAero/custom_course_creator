@@ -21,6 +21,8 @@ import LearnerDashboard from './pages/LearnerDashboard';
 import SkillResult from './pages/SkillResult';
 import GenerateCurriculum from './pages/GenerateCurriculum';
 import CourseAnalytics from './pages/CourseAnalytics';
+import EmailDelivery from './pages/EmailDelivery'
+
 
 
 function App() {
@@ -75,6 +77,8 @@ function App() {
       {/* Course Analytics - Instructor only */}
       <Route path='/courses/:id/analytics' element={<InstructorRoute> <CourseAnalytics/> </InstructorRoute>} />
 
+       {/* Email Delivery - Instructor/Admin only */}
+      <Route path='/email-delivery' element={<InstructorRoute> <EmailDelivery/> </InstructorRoute>} />
     </Routes>
   );  
   //element = funtion()
