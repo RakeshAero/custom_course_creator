@@ -129,6 +129,14 @@ function Courses() {
                                                     >
                                                         ✨ Generate Curriculum
                                                     </button>
+
+                                                    {/* Course analytics button */}
+                                                      <button
+                                                        onClick={(e) => { e.stopPropagation(); navigate(`/courses/${course.id}/analytics`); }}
+                                                        className="text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 px-2.5 py-1 rounded-full transition-all"
+                                                    >
+                                                        Analytics
+                                                    </button>
                                                 </div>
                                             ) : needsOnboarding ? (
                                                 <button
