@@ -1,6 +1,6 @@
 from collections import defaultdict
 from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
@@ -218,3 +218,106 @@ class SubtopicProgressViewSet(viewsets.ViewSet):
             "completed": progress.completed,
             "updated_at": progress.updated_at
         }, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def admin_dashboard(request):
+    if request.user.role not in ('instructor', 'admin'):
+            return Response(
+                {'error': 'Instructor or admin access required.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+    from django.contrib.auth import get_user_model
+    from courses.models import Course, Subtopic, CourseEnrollment
+    from assessments.models import AssessmentSubmission
+    from emails.models import EmailLog
+    from users.models import User
+    from .health import compute_health_score, health_status
+
+    user = get_user_model()
+
+    per_learner = []
+    healthy = 0
+    at_risk = 0
+    completion_values = []
+
+    # Only learners who are actually enrolled in something
+    learner_ids = (CourseEnrollment.objects.filter(is_active=True)
+                   .values_list('user_id', flat=True).distinct())
+    # Then fetch the user details (name,email)
+    learners = User.objects.filter(id__in=learner_ids)
+
+
+    for learner in learners:
+        enrolled_course_ids = list(
+            CourseEnrollment.objects.filter(user=learner, is_active=True)
+            .values_list('course_id', flat=True)
+        )
+
+    
+        # 1) Completion % = subtopics done / total subtopics across enrolled courses
+        #total subtopics
+        total_subs = Subtopic.objects.filter(module__course_id__in=enrolled_course_ids).count()
+        #subtopics done
+        done_subs = SubtopicProgress.objects.filter(
+                user=learner,
+                subtopic__module__course_id__in=enrolled_course_ids,
+                completed=True,
+            ).count()
+        completion_pct = round((done_subs / total_subs) * 100) if total_subs else 0
+
+        # 2) Last active — most recent progress update
+        last_prog = SubtopicProgress.objects.filter(user=learner).order_by('updated_at').first()
+        last_active = last_prog.updated_at if last_prog else None
+
+        # 3) Module score — average of their onboarding skill-score percentages
+        module_scores = []
+        for sub in AssessmentSubmission.objects.filter(user=learner):
+                if sub.skill_scores:
+                    module_scores.append(sum(sub.skill_scores.values()) / len(sub.skill_scores))
+        module_score = round(sum(module_scores) / len(module_scores)) if module_scores else 0
+
+        # 4) Emails sent to this learner
+        emails_sent = EmailLog.objects.filter(user=learner, status=EmailLog.STATUS_SENT).count()
+
+        # 5) The health score (your Step-1 formula)
+        score = compute_health_score(completion_pct, last_active, module_score)
+        hstatus = health_status(score)
+
+        if hstatus == 'healthy':
+            healthy += 1
+        else:
+            at_risk += 1
+        completion_values.append(completion_pct)
+
+        per_learner.append({
+            'username': learner.username,
+            'completion_pct': completion_pct,
+            'module_score': module_score,
+            'emails_sent': emails_sent,
+            'last_active': last_active,
+            'health_score': score,
+            'status': hstatus,
+        })
+
+    per_learner.sort(key=lambda x: x['health_score'])  # most at-risk first
+
+     # ── Global KPIs 
+    total_emails = EmailLog.objects.count()
+    sent_emails = EmailLog.objects.filter(status=EmailLog.STATUS_SENT).count()
+
+    kpis = {
+        'total_learners': learners.count(),
+        'total_courses': Course.objects.count(),
+        'total_enrollments': CourseEnrollment.objects.filter(is_active=True).count(),
+        'avg_completion_pct': round(sum(completion_values) / len(completion_values)) if completion_values else 0,
+        'email_delivery_rate': round((sent_emails / total_emails) * 100) if total_emails else 0,
+    }
+
+    return Response({
+        'kpis': kpis,
+        'health_distribution': {'healthy': healthy, 'at_risk': at_risk},
+        'per_learner': per_learner,
+    })

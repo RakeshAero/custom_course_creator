@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ProgressViewSet, SubtopicProgressViewSet
+from .views import ProgressViewSet, SubtopicProgressViewSet, admin_dashboard
 
 router = DefaultRouter()
 router.register(r'progress', ProgressViewSet, basename='progress')
@@ -8,4 +8,5 @@ router.register(r'subtopic-progress', SubtopicProgressViewSet, basename='subtopi
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('admin/dashboard/', admin_dashboard, name='admin-dashboard'),
 ]
